@@ -1,0 +1,39 @@
+#eclipse
+.classpath
+.project
+.settings/
+
+# Intellij
+.idea/
+*.iml
+*.iws
+
+# Mac
+.DS_Store
+
+# Maven
+log/
+target/
+
+# Vertx
+.vertx
+logs
+
+# misc
+*.log
+*.ipr
+buildAll.sh
+build_output.txt
+_bsp/
+doc/out
+docs/*.asciidoc
+benchmarks/
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+.eggs
+__version__.py
+backend/modules/ordos-server/neo4j/
+file-uploads/
+
