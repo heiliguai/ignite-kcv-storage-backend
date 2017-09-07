@@ -1,5 +1,6 @@
 package io.openmg.metagraph.ignite;
 
+import com.google.common.collect.Maps;
 import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.Entry;
 import org.janusgraph.diskstorage.EntryList;
@@ -14,24 +15,36 @@ import java.util.Map;
  */
 public class IgniteKCVStore implements KeyColumnValueStore {
 
-    public IgniteKCVStore(String cacheName,KeyColumnValueStoreManager manager){
+    private final String storeName;
 
+    private final IgniteCacheManager igniteCache;
+
+    private final IgniteKCVStoreManager storeManager;
+
+
+    public IgniteKCVStore(String storeName, IgniteCacheManager igniteCache, IgniteKCVStoreManager manager){
+        this.storeName = storeName;
+        this.igniteCache = igniteCache;
+        this.storeManager = manager;
     }
 
     public EntryList getSlice(KeySliceQuery keySliceQuery, StoreTransaction storeTransaction) throws BackendException {
-        return null;
+        return igniteCache.getSlice(keySliceQuery,storeTransaction);
     }
 
-    public Map<StaticBuffer, EntryList> getSlice(List<StaticBuffer> list, SliceQuery sliceQuery, StoreTransaction storeTransaction) throws BackendException {
-        return null;
+    public Map<StaticBuffer, EntryList> getSlice(List<StaticBuffer> keys, SliceQuery query, StoreTransaction txh) throws BackendException {
+        Map<StaticBuffer,EntryList> result = Maps.newHashMap();
+        for (StaticBuffer key : keys) result.put(key,getSlice(new KeySliceQuery(key,query),txh));
+        return result;
     }
 
-    public void mutate(StaticBuffer staticBuffer, List<Entry> list, List<StaticBuffer> list1, StoreTransaction storeTransaction) throws BackendException {
-
+    public void mutate(StaticBuffer key, List<Entry> additions, List<StaticBuffer> deletions, StoreTransaction txh) throws BackendException {
+        igniteCache.mutate(key,additions,deletions,txh);
     }
+
 
     public void acquireLock(StaticBuffer staticBuffer, StaticBuffer staticBuffer1, StaticBuffer staticBuffer2, StoreTransaction storeTransaction) throws BackendException {
-
+        throw new UnsupportedOperationException();
     }
 
     public KeyIterator getKeys(KeyRangeQuery keyRangeQuery, StoreTransaction storeTransaction) throws BackendException {

@@ -1,10 +1,8 @@
 package io.openmg.metagraph.ignite;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.janusgraph.diskstorage.BackendException;
-import org.janusgraph.diskstorage.BaseTransactionConfig;
-import org.janusgraph.diskstorage.StaticBuffer;
-import org.janusgraph.diskstorage.StoreMetaData;
+import org.janusgraph.diskstorage.*;
 import org.janusgraph.diskstorage.configuration.Configuration;
 import org.janusgraph.diskstorage.keycolumnvalue.*;
 import org.janusgraph.diskstorage.util.StaticArrayBuffer;
@@ -18,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.METRICS_PREFIX;
 
 /**
  * Created by eguoyix on 17/9/4.
@@ -41,9 +38,9 @@ public class IgniteKCVStoreManager implements KeyColumnValueStoreManager {
 
         assert igniteConfig != null && !igniteConfig.isEmpty();
 
-        File ccf = new File(igniteConfig);
+        File icf = new File(igniteConfig);
 
-        if (ccf.exists() && ccf.isAbsolute()) {
+        if (icf.exists() && icf.isAbsolute()) {
             igniteConfig = "file://" + igniteConfig;
             log.debug("Set ignite config string \"{}\"", igniteConfig);
         }
@@ -55,17 +52,24 @@ public class IgniteKCVStoreManager implements KeyColumnValueStoreManager {
         if (openStores.containsKey(name))
             return openStores.get(name);
 
-        IgniteKCVStore store = new IgniteKCVStore(name, this);
+        IgniteKCVStore store = new IgniteKCVStore(name,new IgniteCacheManager(),this);
         openStores.put(name, store);
         return store;
     }
 
-    public void mutateMany(Map<String, Map<StaticBuffer, KCVMutation>> map, StoreTransaction storeTransaction) throws BackendException {
-
+    public void mutateMany(Map<String, Map<StaticBuffer, KCVMutation>> mutations, StoreTransaction txh) throws BackendException {
+        Preconditions.checkNotNull(mutations);
+        for (Map.Entry<String, Map<StaticBuffer, KCVMutation>> storeMut : mutations.entrySet()) {
+            KeyColumnValueStore store = openStores.get(storeMut.getKey());
+            Preconditions.checkNotNull(store);
+            for (Map.Entry<StaticBuffer, KCVMutation> keyMut : storeMut.getValue().entrySet()) {
+                store.mutate(keyMut.getKey(), keyMut.getValue().getAdditions(), keyMut.getValue().getDeletions(), txh);
+            }
+        }
     }
 
     public StoreTransaction beginTransaction(BaseTransactionConfig baseTransactionConfig) throws BackendException {
-        return null;
+        return new IgniteTransaction(baseTransactionConfig);
     }
 
     public void close() throws BackendException {
